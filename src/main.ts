@@ -1,16 +1,17 @@
 import "./scss/styles.scss";
 import { Api } from "./components/base/Api";
 import { ApiService } from "./components/base/ApiService";
-import { Catalog } from "./components/base/Models/Catalog";
-import { Basket } from "./components/base/Models/Basket";
-import { Buyer } from "./components/base/Models/Buyer";
+import { Catalog } from "./components/Models/Catalog";
+import { Basket } from "./components/Models/Basket";
+import { Buyer } from "./components/Models/Buyer";
 import { apiProducts } from "./utils/data";
+import { API_URL } from "./utils/constants";
 
 const catalog = new Catalog();
 
 catalog.setProducts(apiProducts.items);
 
-const api = new Api(import.meta.env.VITE_API_ORIGIN);
+const api = new Api(API_URL);
 const apiService = new ApiService(api);
 
 
@@ -75,8 +76,12 @@ buyer.clear();
 console.log("После очистки покупателя:", buyer.getBuyer());
 console.log("Ошибки после очистки:", buyer.validate());
 
-apiService.getProducts().then((data) => {
-  catalog.setProducts(data.items);
+apiService.getProducts()
+    .then((data) => {
+        catalog.setProducts(data.items);
 
-  console.log("Каталог с сервера:", catalog.getProducts());
-});
+        console.log("Каталог с сервера:", catalog.getProducts());
+    })
+    .catch((error) => {
+        console.error('Ошибка при загрузке товаров:', error);
+    });

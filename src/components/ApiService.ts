@@ -3,7 +3,7 @@ import {
     IOrderResponse,
     IProductResponse,
     IApi,
-} from '../../types';
+} from '../types';
 
 export class ApiService {
     constructor(private api: IApi) {}

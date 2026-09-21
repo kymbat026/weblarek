@@ -1,6 +1,6 @@
 import "./scss/styles.scss";
 import { Api } from "./components/base/Api";
-import { ApiService } from "./components/base/ApiService";
+import { ApiService } from "./components/ApiService";
 import { Catalog } from "./components/Models/Catalog";
 import { Basket } from "./components/Models/Basket";
 import { Buyer } from "./components/Models/Buyer";
@@ -64,10 +64,8 @@ buyer.setAddress("Усть-Каменогорск");
 console.log("Заполненные данные покупателя:", buyer.getBuyer());
 console.log("Ошибки после заполнения:", buyer.validate());
 
-buyer.setBuyer({
-  email: "new@example.com",
-  phone: "+77009876543",
-});
+buyer.setEmail("new@example.com");
+buyer.setPhone("+77009876543");
 
 console.log("После частичного обновления:", buyer.getBuyer());
 

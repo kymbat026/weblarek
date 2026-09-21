@@ -2,7 +2,7 @@ import { IBuyer } from '../../types';
 
 export class Buyer {
   private buyer: IBuyer = {
-    payment: '' as IBuyer['payment'],
+    payment: null,
     email: '',
     phone: '',
     address: '',
@@ -24,20 +24,13 @@ export class Buyer {
     this.buyer.address = address;
   }
 
-  setBuyer(data: Partial<IBuyer>): void {
-    this.buyer = {
-      ...this.buyer,
-      ...data,
-    };
-  }
-
-  getBuyer(): IBuyer {
+   getBuyer(): IBuyer {
     return this.buyer;
   }
 
   clear(): void {
     this.buyer = {
-      payment: '' as IBuyer['payment'],
+      payment: null,
       email: '',
       phone: '',
       address: '',

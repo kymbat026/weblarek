@@ -11,8 +11,10 @@ export interface IApi {
 
 export type TPayment = 'cash' | 'card';
 
+export type TProductId = string;
+
 export interface IProduct {
-    id: string;
+    id: TProductId;
     title: string;
     description: string;
     image: string;
@@ -32,7 +34,7 @@ export interface IProductResponse {
     items: IProduct[];
 }
 
-export type ICreateOrderItem = string;
+export type ICreateOrderItem = TProductId;
 
 export interface ICreateOrderRequest extends IBuyer {
     total: number;

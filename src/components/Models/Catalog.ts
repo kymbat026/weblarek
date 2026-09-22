@@ -1,26 +1,27 @@
-import { IProduct } from '../../types';
+import { IProduct, TProductId } from '../../types';
 
 export class Catalog {
-  private products: IProduct[] = [];
-  private selectedProduct: IProduct | null = null;
+    private products: IProduct[] = [];
 
-  setProducts(products: IProduct[]): void {
-    this.products = products;
-  }
+    private selectedProduct: IProduct | null = null;
 
-  getProducts(): IProduct[] {
-    return this.products;
-  }
+    setProducts(products: IProduct[]): void {
+        this.products = products;
+    }
 
-  getProduct(id: string): IProduct | undefined {
-    return this.products.find((product) => product.id === id);
-  }
+    getProducts(): IProduct[] {
+        return this.products;
+    }
 
-  setSelectedProduct(product: IProduct): void {
-    this.selectedProduct = product;
-  }
+    getProduct(id: TProductId): IProduct | undefined {
+        return this.products.find((product) => product.id === id);
+    }
 
-  getSelectedProduct(): IProduct | null {
-    return this.selectedProduct;
-  }
+    setSelectedProduct(product: IProduct): void {
+        this.selectedProduct = product;
+    }
+
+    getSelectedProduct(): IProduct | null {
+        return this.selectedProduct;
+    }
 }

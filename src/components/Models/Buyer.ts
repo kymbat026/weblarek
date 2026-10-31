@@ -1,4 +1,5 @@
 import { IBuyer } from '../../types';
+import { IEvents } from '../base/Events';
 
 export class Buyer {
   private buyer: IBuyer = {
@@ -8,23 +9,29 @@ export class Buyer {
     address: '',
   };
 
+  constructor(private events: IEvents) {}
+
   setPayment(payment: IBuyer['payment']): void {
     this.buyer.payment = payment;
+    this.events.emit('buyer:changed');
   }
 
   setEmail(email: string): void {
     this.buyer.email = email;
+    this.events.emit('buyer:changed');
   }
 
   setPhone(phone: string): void {
     this.buyer.phone = phone;
+    this.events.emit('buyer:changed');
   }
 
   setAddress(address: string): void {
     this.buyer.address = address;
+    this.events.emit('buyer:changed');
   }
 
-   getBuyer(): IBuyer {
+  getBuyer(): IBuyer {
     return this.buyer;
   }
 
@@ -35,6 +42,7 @@ export class Buyer {
       phone: '',
       address: '',
     };
+    this.events.emit('buyer:changed');
   }
 
   validate(): Partial<Record<keyof IBuyer, string>> {

@@ -1,6 +1,7 @@
 
 import { IBuyer, TPayment } from '../types';
 import { Form } from './Form';
+import { IEvents } from './base/Events';
 
 interface IFormOrder extends IBuyer {
     valid: boolean;
@@ -11,7 +12,7 @@ export class FormOrder extends Form<IFormOrder> {
     protected _paymentButtons: HTMLButtonElement[];
     protected _addressInput: HTMLInputElement;
 
-    constructor(container: HTMLFormElement, onSubmit: () => void) {
+    constructor(container: HTMLFormElement, protected events: IEvents) {
         super(container);
 
         this._paymentButtons = Array.from(
@@ -23,24 +24,20 @@ export class FormOrder extends Form<IFormOrder> {
     button.addEventListener('click', () => {
         const payment = button.name as TPayment;
         this.payment = payment;
-        this.container.dispatchEvent(
-            new CustomEvent('payment:changed', { detail: payment })
-        );
+        this.events.emit('payment:changed', { payment });
     });
 });
       
 
-        this._addressInput.addEventListener('input', () => {
-    this.container.dispatchEvent(
-        new CustomEvent('address:changed', {
-            detail: this._addressInput.value,
-        })
-    );
-});
+       this._addressInput.addEventListener('input', () => {
+    this.events.emit('address:changed', {
+    address: this._addressInput.value,
+});});
 
-        this.container.addEventListener('submit', () => {
-            onSubmit();
-        });
+        this.container.addEventListener('submit', (event) => {
+    event.preventDefault();
+    this.events.emit('order:submit');
+});
     }
 
     set payment(value: TPayment) {

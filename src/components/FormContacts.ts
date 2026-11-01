@@ -1,4 +1,4 @@
-
+import { IEvents } from './base/Events';
 import { IBuyer } from '../types';
 import { Form } from './Form';
 
@@ -11,31 +11,28 @@ export class FormContacts extends Form<IFormContacts> {
     protected _emailInput: HTMLInputElement;
     protected _phoneInput: HTMLInputElement;
 
-    constructor(container: HTMLFormElement, onSubmit: () => void) {
+    constructor(container: HTMLFormElement, protected events: IEvents) {
         super(container);
 
         this._emailInput = container.querySelector('input[name="email"]')!;
         this._phoneInput = container.querySelector('input[name="phone"]')!;
 
         this._emailInput.addEventListener('input', () => {
-            this.container.dispatchEvent(
-                new CustomEvent('email:changed', {
-                    detail: this._emailInput.value,
-                })
-            );
-        });
+    this.events.emit('email:changed', {
+    email: this._emailInput.value,
+});
+});
 
         this._phoneInput.addEventListener('input', () => {
-            this.container.dispatchEvent(
-                new CustomEvent('phone:changed', {
-                    detail: this._phoneInput.value,
-                })
-            );
-        });
+    this.events.emit('phone:changed', {
+    phone: this._phoneInput.value,
+});
+});
 
-        this.container.addEventListener('submit', () => {
-            onSubmit();
-        });
+        this.container.addEventListener('submit', (event) => {
+    event.preventDefault();
+    this.events.emit('order:finish');
+});
     }
 
     set email(value: string) {

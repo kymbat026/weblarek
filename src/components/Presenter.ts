@@ -14,23 +14,31 @@ import { FormOrder } from './FormOrder';
 import { FormContacts } from './FormContacts';
 import { Success } from './Success';
 import { ICreateOrderRequest } from '../types';
+import { CDN_URL } from '../utils/constants';
 
 export class Presenter {
    constructor(
     private events: IEvents,
     private catalog: Catalog,
     private basket: Basket,
-private buyer: Buyer,
-private apiService: ApiService,
-private page: Page,
-private modal: Modal
-) {
+    private buyer: Buyer,
+    private apiService: ApiService,
+    private page: Page,
+    private modal: Modal,
+    private cardPreview: CardPreview,
+    private basketView: BasketView,
+    private formOrder: FormOrder,
+    private formContacts: FormContacts,
+    private success: Success
+) 
+{
     this.events.on('catalog:changed', () => {
         this.renderCatalog();
     });
 
-    this.events.on('basket:changed', () => {
+  this.events.on('basket:changed', () => {
     this.page.counter = this.basket.getCount();
+    this.updateBasketView();
 });
 
 this.events.on('basket:open', () => {
@@ -43,65 +51,112 @@ this.events.on('basket:checkout', () => {
 this.events.on('order:submit', () => {
     this.renderContactsForm();
 });
+this.events.on('payment:changed', (data: { payment: TPayment }) => {
+    this.buyer.setPayment(data.payment);
+});
 
+this.events.on('address:changed', (data: { address: string }) => {
+    this.buyer.setAddress(data.address);
+});
+this.events.on('email:changed', (data: { email: string }) => {
+    this.buyer.setEmail(data.email);
+});
 
+this.events.on('phone:changed', (data: { phone: string }) => {
+    this.buyer.setPhone(data.phone);
+});
+this.events.on('buyer:changed', () => {
+    const buyer = this.buyer.getBuyer();
+    const errors = this.buyer.validate();
+
+        if (buyer.payment) {
+        this.formOrder.payment = buyer.payment;
+    }
+    this.formOrder.address = buyer.address;
+    this.formOrder.errors = [errors.payment, errors.address]
+        .filter(Boolean)
+        .join('. ');
+    this.formOrder.valid = !errors.payment && !errors.address;
+
+    // Форма контактных данных
+    this.formContacts.email = buyer.email;
+    this.formContacts.phone = buyer.phone;
+    this.formContacts.errors = [errors.email, errors.phone]
+        .filter(Boolean)
+        .join('. ');
+    this.formContacts.valid = !errors.email && !errors.phone;
+});
 this.events.on('order:finish', () => {
     this.submitOrder();
 });
-
+this.events.on('success:close', () => {
+    this.modal.close();
+});
   this.events.on('card:select', (product: IProduct) => {
     this.catalog.setSelectedProduct(product);
 
-    const template = document.querySelector(
-        '#card-preview'
-    ) as HTMLTemplateElement;
-
-    const cardElement = template.content
-        .querySelector('.card')!
-        .cloneNode(true) as HTMLElement;
-
-    const card = new CardPreview(cardElement, () => {
-        if (this.basket.hasProduct(product.id)) {
-            this.basket.removeProduct(product.id);
-        } else {
-            this.basket.addProduct(product);
-        }
-
-        this.modal.close();
-    });
-
-    card.title = product.title;
-    card.price = product.price;
-    card.category = product.category;
-    card.image = product.image;
-    card.description = product.description;
+    this.cardPreview.title = product.title;
+    this.cardPreview.price = product.price;
+    this.cardPreview.buttonDisabled = product.price === null;
+    this.cardPreview.category = product.category;
+    this.cardPreview.image = {
+        src: product.image,
+        alt: product.title,
+    };
+    this.cardPreview.description = product.description;
 
     if (product.price === null) {
-        card.buttonText = 'Недоступно';
+        this.cardPreview.buttonText = 'Недоступно';
     } else if (this.basket.hasProduct(product.id)) {
-        card.buttonText = 'Удалить из корзины';
+        this.cardPreview.buttonText = 'Удалить из корзины';
     } else {
-        card.buttonText = 'Купить';
+        this.cardPreview.buttonText = 'Купить';
     }
 
-    this.modal.content = card.render();
+    this.modal.content = this.cardPreview.render();
     this.modal.open();
 });
+this.events.on('card:buy', () => {
+    const product = this.catalog.getSelectedProduct();
 
-}
-private renderBasket(): void {
-    const template = document.querySelector(
-        '#basket'
-    ) as HTMLTemplateElement;
+    if (!product) {
+        return;
+    }
 
-    const basketElement = template.content
-        .querySelector('.basket')!
-        .cloneNode(true) as HTMLElement;
+    if (this.basket.hasProduct(product.id)) {
+        this.basket.removeProduct(product.id);
+    } else {
+        this.basket.addProduct(product);
+    }
 
-    const basketView = new BasketView(basketElement, () => {
-        this.events.emit('basket:checkout');
+    this.modal.close();
+});
+this.events.on('basket:remove', (data: { id: string }) => {
+    this.basket.removeProduct(data.id);
+});
+
+this.apiService.getProducts()
+    .then((data) => {
+        const products = data.items.map((item) => ({
+            ...item,
+            image: `${CDN_URL}${item.image}`,
+        }));
+
+        this.catalog.setProducts(products);
+    })
+    .catch((error) => {
+        console.error('Ошибка при загрузке товаров:', error);
     });
+}
 
+
+private renderBasket(): void {
+    this.updateBasketView();
+    this.modal.content = this.basketView.render();
+    this.modal.open();
+}
+
+private updateBasketView(): void {
     const cardTemplate = document.querySelector(
         '#card-basket'
     ) as HTMLTemplateElement;
@@ -112,8 +167,7 @@ private renderBasket(): void {
             .cloneNode(true) as HTMLElement;
 
         const card = new CardBasket(cardElement, () => {
-            this.basket.removeProduct(product.id);
-            this.renderBasket();
+            this.events.emit('basket:remove', { id: product.id });
         });
 
         card.title = product.title;
@@ -123,118 +177,20 @@ private renderBasket(): void {
         return card.render();
     });
 
-    basketView.items = items;
-    basketView.total = this.basket.getTotal();
-
-    this.modal.content = basketView.render();
-    this.modal.open();
+    this.basketView.items = items;
+    this.basketView.total = this.basket.getTotal();
+    this.basketView.buttonDisabled = items.length === 0;
 }
 private renderOrderForm(): void {
-    const template = document.querySelector(
-        '#order'
-    ) as HTMLTemplateElement;
+    this.events.emit('buyer:changed');
 
-    const formElement = template.content
-        .querySelector('form')!
-        .cloneNode(true) as HTMLFormElement;
-
-    const form = new FormOrder(formElement, () => {
-        this.events.emit('order:submit');
-    });
-
-    const updateValidity = () => {
-    const buyer = this.buyer.getBuyer();
-    const errors: string[] = [];
-
-    if (!buyer.payment) {
-        errors.push('Выберите способ оплаты');
-    }
-
-    if (!buyer.address.trim()) {
-        errors.push('Введите адрес доставки');
-    }
-
-    form.errors = errors.join('. ');
-    form.valid = errors.length === 0;
-
-};
-
-formElement.addEventListener('payment:changed', (event) => {
-    const payment = (event as CustomEvent<TPayment>).detail;
-    this.buyer.setPayment(payment);
-    updateValidity();
-});
-
-formElement.addEventListener('address:changed', (event) => {
-    const address = (event as CustomEvent<string>).detail;
-    this.buyer.setAddress(address);
-    updateValidity();
-});
-
-    const buyer = this.buyer.getBuyer();
-
-    if (buyer.payment) {
-        form.payment = buyer.payment;
-    }
-
-    form.address = buyer.address;
-    updateValidity();
-   
-
+    const form = this.formOrder;
     this.modal.content = form.render();
     this.modal.open();
 }
-
-
 private renderContactsForm(): void {
-    const template = document.querySelector(
-        '#contacts'
-    ) as HTMLTemplateElement;
-
-    const formElement = template.content
-        .querySelector('form')!
-        .cloneNode(true) as HTMLFormElement;
-
-    const form = new FormContacts(formElement, () => {
-        this.events.emit('order:finish');
-    });
-
-    const updateValidity = () => {
-    const buyer = this.buyer.getBuyer();
-    const errors: string[] = [];
-
-    if (!buyer.email.trim()) {
-        errors.push('Не указан email');
-    }
-
-    if (!buyer.phone.trim()) {
-        errors.push('Не указан телефон');
-    }
-
-    form.errors = errors.join('. ');
-    form.valid = errors.length === 0;
-};
-
-    formElement.addEventListener('email:changed', (event) => {
-        const email = (event as CustomEvent<string>).detail;
-        this.buyer.setEmail(email);
-        updateValidity();
-    });
-
-    formElement.addEventListener('phone:changed', (event) => {
-        const phone = (event as CustomEvent<string>).detail;
-        this.buyer.setPhone(phone);
-        updateValidity();
-    });
-
-    const buyer = this.buyer.getBuyer();
-
-    form.email = buyer.email;
-    form.phone = buyer.phone;
-
-    updateValidity();
-
-    this.modal.content = form.render();
+    const form = this.formContacts;
+     this.modal.content = form.render();
     this.modal.open();
 }
 
@@ -248,26 +204,15 @@ private submitOrder(): void {
     };
 
     this.apiService.createOrder(order)
-        .then((response) => {
-            const template = document.querySelector(
-                '#success'
-            ) as HTMLTemplateElement;
+    .then((response) => {
+        this.basket.clear();
+        this.buyer.clear();
 
-            const successElement = template.content
-                .querySelector('.order-success')!
-                .cloneNode(true) as HTMLElement;
+        this.success.total = response.total;
 
-            const success = new Success(successElement, () => {
-                this.modal.close();
-                this.basket.clear();
-                this.buyer.clear();
-            });
-
-            success.total = response.total;
-
-            this.modal.content = success.render();
-            this.modal.open();
-        })
+        this.modal.content = this.success.render();
+        this.modal.open();
+    })
         .catch((error) => {
             console.error('Ошибка при оформлении заказа:', error);
         });
@@ -290,7 +235,10 @@ private submitOrder(): void {
             card.title = item.title;
             card.price = item.price;
             card.category = item.category;
-            card.image = item.image;
+            card.image = {
+    src: item.image,
+    alt: item.title,
+};
 
             return card.render();
         });

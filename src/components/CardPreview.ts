@@ -1,7 +1,7 @@
 
 import { IProduct } from '../types';
 import { Card } from './Card';
-import { CDN_URL } from '../utils/constants';
+
 
 export class CardPreview extends Card<IProduct> {
     protected _category: HTMLElement;
@@ -24,12 +24,9 @@ export class CardPreview extends Card<IProduct> {
         this._category.textContent = value;
     }
 
-    set image(value: string) {
-        this.setImage(
-            this._image,
-            `${CDN_URL}${value}`,
-            this._title.textContent ?? ''
-        );
+    set image(value: { src: string; alt: string }) {
+    this.setImage(this._image, value.src, value.alt);
+
     }
 
     set description(value: string) {
@@ -37,9 +34,12 @@ export class CardPreview extends Card<IProduct> {
     }
 
     set price(value: number | null) {
-        super.price = value;
-        this._button.disabled = value === null;
-    }
+    super.price = value;
+}
+
+set buttonDisabled(value: boolean) {
+    this._button.disabled = value;
+}
 
     set buttonText(value: string) {
         this._button.textContent = value;

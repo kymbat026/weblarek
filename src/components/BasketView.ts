@@ -23,10 +23,12 @@ export class BasketView extends Component<IBasketView> {
     }
 
     set items(value: HTMLElement[]) {
-        this._list.replaceChildren(...value);
+    this._list.replaceChildren(...value);
+}
 
-        this._checkoutButton.disabled = value.length === 0;
-    }
+    set buttonDisabled(value: boolean) {
+    this._checkoutButton.disabled = value;
+}
 
     set total(value: number) {
         this._total.textContent = `${value} синапсов`;
